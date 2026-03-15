@@ -5,37 +5,299 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KMS TEST</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #f4f7fb;
+      background: linear-gradient(135deg, #eef4ff 0%, #f7f9fc 100%);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      color: #1f2937;
     }
+
     .card {
+      width: 100%;
+      max-width: 760px;
       background: #ffffff;
-      padding: 40px 60px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      padding: 36px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+    }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: 34px;
+      color: #1f6feb;
       text-align: center;
     }
-    h1 {
-      color: #1f6feb;
-      margin-bottom: 12px;
+
+    .subtitle {
+      margin: 0 0 28px;
+      text-align: center;
+      font-size: 17px;
+      color: #4b5563;
+      line-height: 1.7;
     }
-    p {
-      color: #333;
+
+    .button-area {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    button {
+      background: #1f6feb;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s ease;
+      box-shadow: 0 6px 16px rgba(31, 111, 235, 0.22);
+    }
+
+    button:hover {
+      background: #195fca;
+    }
+
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .status-box {
+      display: none;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 22px;
+      line-height: 1.7;
+    }
+
+    .status-box.success {
+      display: block;
+      background: #ecfdf3;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+
+    .status-box.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .status-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .status-message {
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .info-card {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .info-card h3 {
+      margin: 0 0 14px;
       font-size: 18px;
-      margin: 0;
+      color: #111827;
+    }
+
+    .row {
+      margin-bottom: 8px;
+      word-break: break-word;
+      font-size: 14px;
+    }
+
+    .label {
+      font-weight: bold;
+      color: #374151;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      vertical-align: middle;
+    }
+
+    .badge.ok {
+      background: #16a34a;
+    }
+
+    .badge.ng {
+      background: #dc2626;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      .card {
+        margin: 20px;
+        padding: 24px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .title {
+        font-size: 28px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>通信成功しました！</h1>
-    <p>ALB → ECS → アプリ まで到達しています。</p>
+    <h1 class="title">接続確認ポータル</h1>
+    <p class="subtitle">
+      ALB → ECS → アプリ の疎通に加え、<br>
+      KMS / PostgreSQL の接続確認をこの画面から実行できます。
+    </p>
+
+    <div class="button-area">
+      <button id="checkButton" onclick="runCheck()">接続確認を実行</button>
+    </div>
+
+    <div id="statusBox" class="status-box">
+      <div id="statusTitle" class="status-title"></div>
+      <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <div class="grid">
+      <div class="info-card">
+        <h3>KMS 接続結果</h3>
+        <div class="row"><span class="label">状態:</span> <span id="kmsStatus">未実行</span></div>
+        <div class="row"><span class="label">Key ID:</span> <span id="kmsKeyId">-</span></div>
+        <div class="row"><span class="label">ARN:</span> <span id="kmsArn">-</span></div>
+        <div class="row"><span class="label">Key State:</span> <span id="kmsState">-</span></div>
+        <div class="row"><span class="label">Description:</span> <span id="kmsDescription">-</span></div>
+        <div class="row"><span class="label">Error:</span> <span id="kmsError">-</span></div>
+      </div>
+
+      <div class="info-card">
+        <h3>PostgreSQL 接続結果</h3>
+        <div class="row"><span class="label">状態:</span> <span id="pgStatus">未実行</span></div>
+        <div class="row"><span class="label">Database:</span> <span id="pgDatabase">-</span></div>
+        <div class="row"><span class="label">User:</span> <span id="pgUser">-</span></div>
+        <div class="row"><span class="label">Version:</span> <span id="pgVersion">-</span></div>
+        <div class="row"><span class="label">Error:</span> <span id="pgError">-</span></div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ボタン押下時に <code>/check</code> エンドポイントを実行します。
+    </div>
   </div>
+
+  <script>
+    function setBadge(status) {
+      if (status === "ok") {
+        return '<span class="badge ok">OK</span>';
+      }
+      if (status === "ng") {
+        return '<span class="badge ng">NG</span>';
+      }
+      return status || "-";
+    }
+
+    async function runCheck() {
+      const button = document.getElementById("checkButton");
+      const statusBox = document.getElementById("statusBox");
+      const statusTitle = document.getElementById("statusTitle");
+      const statusMessage = document.getElementById("statusMessage");
+
+      button.disabled = true;
+      button.textContent = "確認中...";
+
+      statusBox.className = "status-box";
+      statusBox.style.display = "block";
+      statusTitle.textContent = "接続確認を実行中です...";
+      statusMessage.textContent = "KMS / PostgreSQL の疎通を確認しています。";
+
+      try {
+        const response = await fetch("/check");
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        document.getElementById("kmsStatus").innerHTML = setBadge(data.kms?.status);
+        document.getElementById("kmsKeyId").textContent = data.kms?.key_id || "-";
+        document.getElementById("kmsArn").textContent = data.kms?.arn || "-";
+        document.getElementById("kmsState").textContent = data.kms?.key_state || "-";
+        document.getElementById("kmsDescription").textContent = data.kms?.description || "-";
+        document.getElementById("kmsError").textContent = data.kms?.error || "-";
+
+        document.getElementById("pgStatus").innerHTML = setBadge(data.postgres?.status);
+        document.getElementById("pgDatabase").textContent = data.postgres?.database || "-";
+        document.getElementById("pgUser").textContent = data.postgres?.user || "-";
+        document.getElementById("pgVersion").textContent = data.postgres?.version || "-";
+        document.getElementById("pgError").textContent = data.postgres?.error || "-";
+
+        if (data.overall_status === "ok") {
+          statusBox.className = "status-box success";
+          statusTitle.textContent = "接続確認が成功しました";
+          statusMessage.textContent =
+            "ALB → ECS → アプリ に加えて、KMS / PostgreSQL への接続も正常に確認できました。";
+        } else {
+          statusBox.className = "status-box error";
+          statusTitle.textContent = "接続確認で一部失敗しました";
+          statusMessage.textContent =
+            "KMS または PostgreSQL のどちらかでエラーが発生しています。詳細は下の結果を確認してください。";
+        }
+      } catch (error) {
+        statusBox.className = "status-box error";
+        statusTitle.textContent = "接続確認の実行に失敗しました";
+        statusMessage.textContent = `エラー: ${error.message}`;
+
+        document.getElementById("kmsStatus").textContent = "未取得";
+        document.getElementById("kmsKeyId").textContent = "-";
+        document.getElementById("kmsArn").textContent = "-";
+        document.getElementById("kmsState").textContent = "-";
+        document.getElementById("kmsDescription").textContent = "-";
+        document.getElementById("kmsError").textContent = "-";
+
+        document.getElementById("pgStatus").textContent = "未取得";
+        document.getElementById("pgDatabase").textContent = "-";
+        document.getElementById("pgUser").textContent = "-";
+        document.getElementById("pgVersion").textContent = "-";
+        document.getElementById("pgError").textContent = "-";
+      } finally {
+        button.disabled = false;
+        button.textContent = "接続確認を実行";
+      }
+    }
+  </script>
 </body>
 </html>
